@@ -1,0 +1,11 @@
+Project 3:
+Matthew Carter: Backend / Reporting
+Daniel Healy: Backend / Reporting
+Joseph Mire: Visual (Viewing patients that are waiting/being seen) / UML
+Sam Bozeman: Visual (Viewing patients that are waiting/being seen) / UML
+
+Project 4:
+Matthew Carter: Add deletion to B Tree
+Daniel Healy: Visual schedule for doctors
+Joseph Mire: A patient or doctor lookup feature which shows information about the person
+Sam Bozeman: Visual indicator of health condition
