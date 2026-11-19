@@ -1,5 +1,5 @@
 CXX      := g++
-CXXFLAGS := -Wall -std=c++17
+CXXFLAGS := -Wall -std=c++17 -g -fsanitize=address,undefined
 SFML     := sfml-graphics sfml-window sfml-system
 
 SFML_CFLAGS = $(shell pkg-config --cflags $(SFML))
@@ -13,8 +13,10 @@ test:
 run:
 	./sim
 
+SRCS := $(wildcard *.cpp)
+
 build:
-	$(CXX) $(CXXFLAGS) $(SFML_CFLAGS) main.cpp -o sim $(SFML_LIBS)
+> $(CXX) $(CXXFLAGS) $(SFML_CFLAGS) $(SRCS) -o sim $(SFML_LIBS)
 
 clean:
 	rm -f sim
