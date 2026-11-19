@@ -1,10 +1,5 @@
 #pragma once
-// BTree.h — simple B-tree (CLRS 18.2: search + insert). Template => all code in this header.
-//
-//   * Minimum degree t chosen at runtime, t >= 2.  Full node = 2t-1 keys.
-//   * Node size = keys.size() (no separate n).  Internal node: children.size() == keys.size()+1.
-//   * T needs: default ctor, operator<, operator==, operator<< (printing).
-//   * 0-indexed (CLRS is 1-indexed — convert whole procedures, not single lines).
+// BTree.h — simple B-tree
 
 #include <cstddef>
 #include <functional>
