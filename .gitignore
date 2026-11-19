@@ -4,10 +4,10 @@
 
 *.toml
 *.lock
-*.txt
 
 # Build output
 build/
 sim
 make
+docs/
 
