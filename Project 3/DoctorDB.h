@@ -9,6 +9,7 @@
 #include "BTree.h"
 #include "Doctor.h"
 
+// Intializing the results of the loading the csv files
 struct LoadResult {
     int loaded = 0;
     int skipped = 0;       // bad lines + duplicates
@@ -17,6 +18,7 @@ struct LoadResult {
     bool ok() const { return error.empty(); }
 };
 
+// Class declaration for Data calls on the Doctor csv
 class DoctorDB {
 public:
     explicit DoctorDB(int minDegree = 3);

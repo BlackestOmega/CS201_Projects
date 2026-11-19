@@ -1,6 +1,7 @@
 # uv
 .venv/
 *.py
+.ruff_cache/
 
 *.toml
 *.lock
@@ -8,6 +9,9 @@
 # Build output
 build/
 sim
-make
+tests
 docs/
 
+conanfile.txt
+Project 3/tests
+DOC_COMMENTS.md

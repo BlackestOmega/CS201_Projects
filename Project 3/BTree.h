@@ -181,6 +181,12 @@ void BTree<T>::printLevels(std::ostream& os) const {
             os << "\n";
             current_level = level;
         }
+        os << "[";
+        for (std::size_t j = 0; j < node->keys.size(); j++) {
+            if (j > 0) os << " | ";
+            os << node->keys[j];
+        }
+        os << "] ";
         if (!node->leaf) {
             for (const Node* c : node->children) {
                 q.push({c, level + 1});
