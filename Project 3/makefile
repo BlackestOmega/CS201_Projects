@@ -55,3 +55,6 @@ clean:
 # "conan" is only a flag, so the target itself does nothing
 conan:
 	@:
+
+tidy:
+	clang-tidy $(wildcard *.cpp) --header-filter="$(CURDIR)/[^/]*\.h$$" -- -std=c++17 $(patsubst -I%,-isystem%,$(SFML_CFLAGS))

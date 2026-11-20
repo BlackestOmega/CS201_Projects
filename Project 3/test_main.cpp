@@ -1,4 +1,4 @@
-// test_main.cpp — tests for BTree, Doctor, DoctorDB and SFML.
+// test_main.cpp — tests for BTree, Doctor, DoctorDB, Heap, Patient, PatientQueue and SFML.
 //
 // Build & run with:  make test        (or: make test conan)
 // The SFML text/window checks run only when a display is available
@@ -12,6 +12,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <filesystem>
+#include <functional>
 #include <fstream>
 #include <iostream>
 #include <random>
@@ -23,6 +24,9 @@
 #include "BTree.h"
 #include "Doctor.h"
 #include "DoctorDB.h"
+#include "Heap.h"
+#include "Patient.h"
+#include "PatientQueue.h"
 
 // ---------------------------------------------------------------------------
 // Tiny test harness: keeps going after a failure so you see every problem.
@@ -317,6 +321,261 @@ static void testRealFile() {
 }
 
 // ===========================================================================
+//  Heap
+// ===========================================================================
+
+static void testHeapEmpty() {
+    section("Heap: empty");
+    Heap<int, std::greater<int>> h;
+    CHECK(h.empty());
+    CHECK(h.size() == 0);
+    CHECK(h.isValid());
+
+    bool topThrew = false, popThrew = false;
+    try { h.top(); } catch (const std::out_of_range&) { topThrew = true; }
+    try { h.pop(); } catch (const std::out_of_range&) { popThrew = true; }
+    CHECK(topThrew);
+    CHECK(popThrew);
+}
+
+static void testHeapSmall() {
+    section("Heap: small max-heap by hand");
+    Heap<int, std::greater<int>> h;   // greater => biggest comes out first
+    for (int v : {30, 10, 50, 20, 40}) {
+        h.push(v);
+        CHECK(h.isValid());
+    }
+    CHECK(h.size() == 5);
+    CHECK(h.top() == 50);
+    std::vector<int> out;
+    while (!h.empty()) {
+        out.push_back(h.pop());
+        CHECK(h.isValid());
+    }
+    CHECK((out == std::vector<int>{50, 40, 30, 20, 10}));
+
+    Heap<int, std::greater<int>> one;
+    one.push(7);
+    CHECK(one.pop() == 7);            // the 1-element pop case
+    CHECK(one.empty());
+}
+
+static void testHeapMin() {
+    section("Heap: min-heap with std::less");
+    Heap<int, std::less<int>> h;      // less => smallest comes out first
+    for (int v : {5, 3, 8, 1, 9, 2}) h.push(v);
+    std::vector<int> out;
+    while (!h.empty()) out.push_back(h.pop());
+    CHECK((out == std::vector<int>{1, 2, 3, 5, 8, 9}));
+}
+
+static void testHeapStress() {
+    section("Heap: random pushes/pops vs std::sort");
+    std::mt19937 rng(2024);
+    for (int n : {1, 2, 3, 10, 1000}) {
+        Heap<int, std::greater<int>> h;
+        std::vector<int> ref;
+        bool validEveryStep = true;
+        for (int i = 0; i < n; ++i) {
+            int v = static_cast<int>(rng() % 100);   // includes duplicates
+            h.push(v);
+            ref.push_back(v);
+            validEveryStep = validEveryStep && h.isValid();
+        }
+        std::sort(ref.rbegin(), ref.rend());         // descending
+        std::vector<int> out;
+        while (!h.empty()) {
+            out.push_back(h.pop());
+            validEveryStep = validEveryStep && h.isValid();
+        }
+        CHECK(validEveryStep);
+        CHECK(out == ref);
+    }
+}
+
+static void testHeapUpdateAll() {
+    section("Heap: updateAll keeps it a valid heap");
+    Heap<int, std::greater<int>> h;
+    for (int i = 0; i < 200; ++i) h.push(i);
+    h.updateAll([](int& x) { x = (x * 37) % 101; });   // scrambles the order
+    CHECK(h.isValid());
+    CHECK(h.size() == 200);
+    int prev = 1'000'000;
+    bool descending = true;
+    while (!h.empty()) {
+        int x = h.pop();
+        descending = descending && x <= prev;
+        prev = x;
+    }
+    CHECK(descending);
+}
+
+// ===========================================================================
+//  Patient
+// ===========================================================================
+
+static void testPatientFromCsv() {
+    section("Patient::fromCSV");
+    Patient p;
+    CHECK(Patient::fromCSV("Ann Lee,30,1996-01-01", p));
+    CHECK(p.name == "Ann Lee");
+    CHECK(p.age == 30);
+    CHECK(p.birthday == "1996-01-01");
+    CHECK(p.condition == 5);           // default: CSV has no condition column
+
+    Patient q;
+    CHECK(Patient::fromCSV("  Ann Lee , 30 , 1996-01-01\r", q));
+    CHECK(q.name == "Ann Lee");        // trimmed
+    CHECK(q.birthday == "1996-01-01");
+
+    Patient bad;
+    CHECK(!Patient::fromCSV("too,few", bad));
+    CHECK(!Patient::fromCSV("a,b,c,d", bad));
+    CHECK(!Patient::fromCSV("Ann,thirty,1996-01-01", bad));
+    CHECK(!Patient::fromCSV("Ann,30abc,1996-01-01", bad));
+    CHECK(!Patient::fromCSV("Ann,-1,1996-01-01", bad));
+    CHECK(!Patient::fromCSV("Ann,30,", bad));
+    CHECK(!Patient::fromCSV("", bad));
+}
+
+static void testPatientIdentity() {
+    section("Patient identity ignores condition");
+    Patient a, b;
+    Patient::fromCSV("Ann Lee,30,1996-01-01", a);
+    Patient::fromCSV("Ann Lee,30,1996-01-01", b);
+    b.condition = 9;
+    CHECK(a == b);                     // same person, different condition
+    CHECK(!(a < b));
+    CHECK(!(b < a));
+    CHECK(a == a);
+
+    Patient c;
+    Patient::fromCSV("Ann Lee,30,1996-05-05", c);   // same name+age, other birthday
+    CHECK(!(a == c));
+    CHECK(a < c);
+}
+
+static void testTreatFirst() {
+    section("TreatFirst (triage order)");
+    TreatFirst first;
+    Patient sick, okay;
+    sick.condition = 9;
+    okay.condition = 3;
+    CHECK(first(sick, okay));          // worse condition goes first
+    CHECK(!first(okay, sick));
+
+    Patient early, late;
+    early.condition = late.condition = 5;
+    early.arrival = 1;
+    late.arrival = 2;
+    CHECK(first(early, late));         // tie -> earlier arrival
+    CHECK(!first(late, early));
+    CHECK(!first(early, early));       // nobody goes before themselves
+}
+
+// ===========================================================================
+//  PatientQueue
+// ===========================================================================
+
+static void testPatientQueue() {
+    section("PatientQueue load + triage");
+    const char* path = "test_patients.csv";
+    {
+        std::ofstream f(path);
+        f << "Ann Lee,30,1996-01-01\r\n"   // line 1
+          << "Bob Day,50,1976-01-01\n"     // line 2
+          << "\n"                          // line 3 (blank)
+          << "bad line\n"                  // line 4
+          << "Cy Fox,41,1985-07-07\n";     // line 5
+    }
+
+    PatientQueue q;
+    CHECK(!q.peekNext().has_value());  // empty queue
+    CHECK(!q.takeNext().has_value());
+
+    LoadResult r = q.loadCSV(path);
+    CHECK(r.ok());
+    CHECK(r.loaded == 3);
+    CHECK(r.skipped == 1);
+    CHECK(r.firstBadLine == 4);
+    CHECK(q.count() == 3);
+
+    // Everyone starts at condition 5, so file order decides.
+    auto next = q.peekNext();
+    CHECK(next.has_value());
+    if (next) CHECK(next->name == "Ann Lee");
+    CHECK(q.count() == 3);             // peek doesn't remove
+
+    std::vector<Patient> w = q.waiting();
+    CHECK(w.size() == 3);
+    if (!w.empty() && next) CHECK(w[0] == *next);   // index 0 = next to be seen
+
+    // Worsen everyone; the cap stops at 10.
+    q.worsenAll(3);
+    w = q.waiting();
+    CHECK(std::all_of(w.begin(), w.end(), [](const Patient& p) { return p.condition == 8; }));
+    q.worsenAll(5);
+    w = q.waiting();
+    CHECK(std::all_of(w.begin(), w.end(), [](const Patient& p) { return p.condition == 10; }));
+
+    // Ann is treated, improves, and comes back: she waits behind the sicker ones.
+    auto ann = q.takeNext();
+    CHECK(ann.has_value());
+    if (ann) {
+        CHECK(ann->name == "Ann Lee");
+        CHECK(q.count() == 2);
+        ann->condition = 2;
+        q.admit(*ann);
+    }
+    CHECK(q.count() == 3);
+
+    std::vector<std::string> order;
+    while (auto p = q.takeNext()) order.push_back(p->name);
+    CHECK((order == std::vector<std::string>{"Bob Day", "Cy Fox", "Ann Lee"}));
+    CHECK(q.count() == 0);
+
+    // Same condition: someone re-admitted later goes behind someone already waiting.
+    Patient x, y;
+    Patient::fromCSV("X Ray,20,2006-01-01", x);
+    Patient::fromCSV("Yu Zed,21,2005-01-01", y);
+    q.admit(x);
+    q.admit(y);
+    auto first = q.takeNext();
+    CHECK(first.has_value());
+    if (first) CHECK(first->name == "X Ray");
+
+    std::remove(path);
+
+    PatientQueue missing;
+    CHECK(!missing.loadCSV("does_not_exist.csv").ok());
+}
+
+static void testRealPatientFile() {
+    section("your patient.csv (if present)");
+    std::ifstream probe("patient.csv");
+    if (!probe) {
+        std::cout << "  (no patient.csv here, skipped)\n";
+        return;
+    }
+    PatientQueue q;
+    LoadResult r = q.loadCSV("patient.csv");
+    std::cout << "  " << r.loaded << " loaded, " << r.skipped << " skipped";
+    if (r.firstBadLine) std::cout << " (first bad line: " << r.firstBadLine << ")";
+    std::cout << "\n";
+    CHECK(r.ok());
+    CHECK(q.count() == static_cast<std::size_t>(r.loaded));
+
+    // Popping everything must never go from a better condition to a worse one.
+    int prev = 11;
+    bool ordered = true;
+    while (auto p = q.takeNext()) {
+        ordered = ordered && p->condition <= prev;
+        prev = p->condition;
+    }
+    CHECK(ordered);
+}
+
+// ===========================================================================
 //  SFML
 // ===========================================================================
 
@@ -386,6 +645,19 @@ int main() {
 
     testDoctorDB();
     testRealFile();
+
+    testHeapEmpty();
+    testHeapSmall();
+    testHeapMin();
+    testHeapStress();
+    testHeapUpdateAll();
+
+    testPatientFromCsv();
+    testPatientIdentity();
+    testTreatFirst();
+
+    testPatientQueue();
+    testRealPatientFile();
 
     testSfml();
 
