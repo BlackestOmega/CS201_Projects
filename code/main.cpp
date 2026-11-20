@@ -13,6 +13,8 @@
 ///   https://www.sfml-dev.org/documentation/3.1.0/
 /// - DejaVu Sans font, for the text in the window
 ///   https://dejavu-fonts.github.io/
+/// - Claude (Anthropic AI assistant), used to assist with this project
+///   https://claude.com/claude-code
 
 #include <SFML/Graphics.hpp>
 #include <filesystem>
