@@ -1,4 +1,7 @@
-
+/**
+ * @file DoctorDB.cpp
+ * @brief Doctor database: loads doctors into a B-tree and answers lookups.
+ */
 #include "DoctorDB.h"
  
 #include <fstream>

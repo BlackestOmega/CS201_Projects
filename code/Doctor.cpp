@@ -1,3 +1,7 @@
+/**
+ * @file Doctor.cpp
+ * @brief Doctor comparisons, CSV parsing and shift-time math.
+ */
 #include "Doctor.h"
 
 #include <cctype>
@@ -28,12 +32,12 @@ bool Doctor::operator==(const Doctor& o) const {
 }
 
 bool Doctor::fromCsv(const std::string& line, Doctor& out) {
-    // Split on commas into exactly 6 fields.
+    // Split on commas into 6 fields, or 7 with the skill level.
     std::vector<std::string> fields;
     std::stringstream ss(line);
     std::string field;
     while (std::getline(ss, field, ',')) fields.push_back(trim(field));
-    if (fields.size() != 6) return false;
+    if (fields.size() != 6 && fields.size() != 7) return false;
     for (const auto& f : fields)
         if (f.empty()) return false;
 
@@ -50,6 +54,17 @@ bool Doctor::fromCsv(const std::string& line, Doctor& out) {
     d.skill = fields[3];
     d.shiftStart = fields[4];
     d.shiftEnd = fields[5];
+
+    if (fields.size() == 7) {
+        // skill level must be a whole number from 1 to 5
+        try {
+            std::size_t used = 0;
+            d.skillLevel = std::stoi(fields[6], &used);
+            if (used != fields[6].size() || d.skillLevel < 1 || d.skillLevel > 5) return false;
+        } catch (const std::exception&) {
+            return false;
+        }
+    }
 
     // Shift times must be parseable, or onShift() can't work.
     if (toMinutes(d.shiftStart) < 0 || toMinutes(d.shiftEnd) < 0) return false;

@@ -20,15 +20,34 @@
 #include <optional>
 #include <string>
 
-// Doctor includes
-#include "BTree.h"
-#include "DoctorDB.h"
+#include "Hospital.h"
 #include "visual.h"
 
+/// loads one CSV and reports how it went
+/// @param what label for the message, e.g. "doctors"
+/// @param r result from the load
+/// @return true if the file opened
+static bool report(const std::string& what, const LoadResult& r) {
+    if (!r.ok()) {
+        std::cerr << r.error << "\n";
+        return false;
+    }
+    std::cout << "Loaded " << r.loaded << " " << what;
+    if (r.skipped) std::cout << " (" << r.skipped << " bad lines skipped)";
+    std::cout << "\n";
+    return true;
+}
 
 /// opens the window and runs the dashboard until it's closed
-/// @return 0 when the window closes, 1 if the font can't be loaded
+/// @return 0 when the window closes, 1 if the font or a CSV can't be loaded
 int main() {
+    // start at 7:55 AM so the first press shows the 8:00 AM arrivals
+    Hospital hospital(7 * 60 + 55);
+    if (!report("doctors", hospital.loadDoctors("doctors.csv")) ||
+        !report("patients", hospital.loadPatients("patient.csv"))) {
+        return 1;
+    }
+
     sf::VideoMode mode({1000, 600});
     sf::RenderWindow window(mode, "Nota Hospital");
     window.setFramerateLimit(60);
@@ -40,7 +59,6 @@ int main() {
     }
 
     HospitalView view(window, font);
-    DisplayState state = mockState();
     sf::Color background(25, 25, 30);
 
     // runs once per frame until the window gets closed
@@ -51,13 +69,13 @@ int main() {
             } else if (const auto* key = event->getIf<sf::Event::KeyPressed>()) {
                 // space moves time forward 5 minutes, the spec lets time move with a button
                 if (key->code == sf::Keyboard::Key::Space) {
-                    state.time += 5;
+                    hospital.step(5);
                 }
             }
         }
 
         window.clear(background);
-        view.draw(state);
+        view.draw(hospital.display());
         window.display();
     }
 }

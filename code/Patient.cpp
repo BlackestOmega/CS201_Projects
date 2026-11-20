@@ -1,8 +1,8 @@
 /**
  * @file patient.cpp
- * @author Original Author Daniel Healy finsihed by Matthew Carter
- * @brief 
- * 
+ * @author Original Author Daniel Healy finished by Matthew Carter
+ * @brief Patient comparisons, triage order and CSV parsing.
+ *
  */
 #include <string>
 #include <iostream>
@@ -13,6 +13,7 @@
 #include <tuple>
 #include <vector>
 #include "Patient.h"
+#include "Doctor.h"   // Doctor::toMinutes for parsing arrival times
 using std::string;
 
 /*
@@ -26,10 +27,7 @@ the space for thinking
 
 
 
-/**
- * @brief 
- * Daniel's
- */
+// Helpers only used in this file. Daniel's
 namespace {
 
 // Remove spaces/tabs/\r from both ends of a string.
@@ -42,18 +40,12 @@ std::string trim(const std::string& s) {
 
 }  // namespace
 
-/**
- * @brief 
- * Daniel's (with changes)
- * @param o 
- * @return true 
- * @return false 
- */
+// Sort by name, then age, then birthday. Daniel's (with changes)
 bool Patient::operator<(const Patient& o) const {
     return std::tie(name, age, birthday) < std::tie(o.name, o.age, o.birthday);
 }
 
-// Daniel's (with changes)
+// Same person if name, age and birthday all match. Daniel's (with changes)
 bool Patient::operator==(const Patient& o) const {
     return std::tie(name, age, birthday) == std::tie(o.name, o.age, o.birthday);
 }
@@ -67,12 +59,12 @@ bool TreatFirst::operator()(const Patient& a, const Patient& b) const {
 
 // Daniel's
 bool Patient::fromCSV(const std::string& line, Patient& out) {
-    //CSV has 3 fields for patients
+    //CSV has 3 fields (name, age, dob) or 5 (plus condition and arrival time)
 	std::vector<std::string> fields;
     std::stringstream ss(line);
     std::string field;
     while (std::getline(ss, field, ',')) fields.push_back(trim(field));
-    if (fields.size() != 3) return false;
+    if (fields.size() != 3 && fields.size() != 5) return false;
     for (const auto& f : fields)
         if (f.empty()) return false;
 
@@ -86,7 +78,21 @@ bool Patient::fromCSV(const std::string& line, Patient& out) {
         return false;
     }
     p.birthday = fields[2];
-    
+
+    if (fields.size() == 5) {
+        // condition must be a whole number from 0 (healthy) to 10 (critical)
+        try {
+            std::size_t used = 0;
+            p.condition = std::stoi(fields[3], &used);
+            if (used != fields[3].size() || p.condition < 0 || p.condition > 10) return false;
+        } catch (const std::exception&) {
+            return false;
+        }
+        // arrival time uses the same "8:05 AM" format as doctor shifts
+        p.arrivalTime = Doctor::toMinutes(fields[4]);
+        if (p.arrivalTime < 0) return false;
+    }
+
     out = p;   // only overwrite `out` once the whole line is valid
     return true;
 }

@@ -19,8 +19,15 @@ struct Doctor {
     std::string skill;
     std::string shiftStart;   // as in the file, e.g. "10:00 PM" (display)
     std::string shiftEnd;
+    int skillLevel = 3;       // 1 (junior) to 5 (expert); optional 7th CSV column
 
     Doctor() = default;
+
+    /**
+     * @brief How long this doctor takes to see one patient.
+     * @return Minutes per visit: 50 at skill 1 down to 10 at skill 5.
+     */
+    int visitMinutes() const { return 60 - 10 * skillLevel; }
 
    /**
  * @brief Compares doctors by key (name, age, dob) only.
@@ -32,8 +39,8 @@ struct Doctor {
 
     /**
  * @brief Parses one CSV line into a Doctor.
- * @param line A line with six comma-separated fields:
- *             name, age, dob, skill, shift start, shift end.
+ * @param line A line with six or seven comma-separated fields:
+ *             name, age, dob, skill, shift start, shift end[, skill level 1-5].
  * @param out Receives the parsed doctor; left unchanged if parsing fails.
  * @return true on success; false if the line is malformed.
  */

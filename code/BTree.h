@@ -1,6 +1,6 @@
 /**
  * @file BTree.h
- * @author your name (you@domain.com)
+ * @author Matthew Carter
  * @brief Generic in-memory B-tree supporting insert, search and in-order traversal.
  *
  * 
@@ -33,14 +33,14 @@ class BTree {
         /**
          * @brief Creates an empty node.
          * 
-         * @param isLeaf 
+         * @param isLeaf true if the node has no children
          */
         explicit Node(bool isLeaf) : leaf(isLeaf) {}
     };
 
-    Node* root_ = nullptr;
-    int t_;
-    std::size_t count_ = 0;
+    Node* root_ = nullptr;   ///< nullptr while the tree is empty
+    int t_;                  ///< minimum degree: nodes hold t-1 to 2t-1 keys
+    std::size_t count_ = 0;  ///< number of keys stored
 
     /**
      * @brief Recursively searches the subtree rooted at x for key k.

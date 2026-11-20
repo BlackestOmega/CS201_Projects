@@ -13,7 +13,7 @@ tests
 docs/
 
 conanfile.txt
-Project 3/tests
+code/tests
 DOC_COMMENTS.md
 
 Database.h

@@ -1,3 +1,7 @@
+/**
+ * @file visual.cpp
+ * @brief SFML drawing for the hospital dashboard.
+ */
 #include "visual.h"
 
 using namespace std;

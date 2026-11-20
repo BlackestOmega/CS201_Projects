@@ -42,6 +42,6 @@ public:
     std::size_t count() const;
 
 private:
-    Heap<Patient, TreatFirst> heap_;
-    long nextArrival_ = 0;
+    Heap<Patient, TreatFirst> heap_;   ///< most urgent patient on top
+    long nextArrival_ = 0;             ///< next value for Patient::arrival
 };
