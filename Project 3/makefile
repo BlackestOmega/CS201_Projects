@@ -39,6 +39,7 @@ test:
 	$(CXX) $(CXXFLAGS) $(SFML_CFLAGS) $(TEST_SRCS) -o tests $(SFML_LIBS)
 	./tests
 
+
 # Install SFML with Conan into build/conan (needed once before using "conan")
 deps:
 	uv run conan install . --output-folder=build/conan --build=missing \

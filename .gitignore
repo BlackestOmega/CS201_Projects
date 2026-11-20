@@ -15,3 +15,5 @@ docs/
 conanfile.txt
 Project 3/tests
 DOC_COMMENTS.md
+
+Database.h
