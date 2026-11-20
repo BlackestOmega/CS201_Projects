@@ -25,7 +25,9 @@ CHECK_SFML = @$(PKG) --exists $(SFML) || { \
 	echo "  conan:  make deps, then check that build/conan has .pc files"; \
 	exit 1; }
 
-.PHONY: build run test deps docs clean conan
+.PHONY: all build run test deps docs clean conan
+
+all: build
 
 build:
 	$(CHECK_SFML)

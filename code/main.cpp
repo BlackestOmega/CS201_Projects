@@ -6,6 +6,11 @@
 ///
 /// Simulates Nota Hospital using a B-Tree for patient and doctor data,
 /// with an SFML window showing who is waiting and being seen.
+/// Doctors and patients are loaded from doctors.csv and patient.csv.
+/// Waiting patients sit in a heap ordered by condition (10 = critical),
+/// and get 1 worse every 15 minutes until a doctor sees them.
+/// Doctors only see patients during their shift, and higher skill
+/// doctors finish visits faster. Press Space to move time forward 5 minutes.
 ///
 /// Sources
 /// - SFML 3 tutorials and documentation, for the window and drawing

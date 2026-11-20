@@ -1,3 +1,7 @@
+/**
+ * @file visual.h
+ * @brief SFML dashboard that draws the hospital: clock, waiting list, and who is being seen.
+ */
 #pragma once
 #include <SFML/Graphics.hpp>
 #include <string>
