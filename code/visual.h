@@ -13,13 +13,22 @@ using namespace std;
 struct Visit {
     string patient;
     string doctor;
+    /// 0 = healthy, 10 = critical, picks the circle's color
+    int condition;
+};
+
+/// one patient in the waiting room and how sick they are
+struct WaitingPatient {
+    string name;
+    /// 0 = healthy, 10 = critical, picks the circle's color
+    int condition;
 };
 
 /// everything the window needs to draw one frame
 struct DisplayState {
     int time;
     /// patients in the order they'll be seen
-    vector<string> waiting;
+    vector<WaitingPatient> waiting;
     vector<Visit> beingSeen;
 };
 
@@ -52,13 +61,13 @@ class HospitalView {
         void drawClock(int time);
 
         /// draws the numbered waiting list on the left side
-        /// @param waiting patient names in the order they'll be seen
-        /// output: nothing, draws one line per patient
-        void drawWaiting(const vector<string>& waiting);
+        /// @param waiting patients in the order they'll be seen
+        /// output: nothing, draws one line per patient with a condition circle
+        void drawWaiting(const vector<WaitingPatient>& waiting);
 
         /// draws who is being seen by which doctor on the right side
         /// @param beingSeen current patient/doctor pairs
-        /// output: nothing, draws one line per visit
+        /// output: nothing, draws one line per visit with a condition circle
         void drawBeingSeen(const vector<Visit>& beingSeen);
 
         /// draws one piece of text, used by all the other draw functions
@@ -67,6 +76,16 @@ class HospitalView {
         /// @param size font size
         /// output: nothing, draws the text to the window
         void drawText(const string& str, sf::Vector2f pos, unsigned int size);
+
+        /// draws a circle colored by how sick a patient is
+        /// @param condition 0 = healthy, 10 = critical
+        /// @param pos top left spot
+        /// output: nothing, draws the circle to the window
+        void drawCircle(int condition, sf::Vector2f pos);
+
+        /// draws the color key for the condition circles next to the clock
+        /// output: nothing, draws one circle and label per color
+        void drawLegend();
 
         // references so the view uses main's window and font instead of copies
         sf::RenderWindow& window;

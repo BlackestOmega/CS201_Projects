@@ -183,14 +183,11 @@ DisplayState Hospital::display() const {
     std::vector<Patient> line = waiting_.waiting();
     std::sort(line.begin(), line.end(), TreatFirst{});
     for (const Patient& p : line) {
-        std::string row = p.name + " (" + std::to_string(p.condition) + ")";
-        if (p.critical()) row += "  CRITICAL";
-        s.waiting.push_back(row);
+        s.waiting.push_back({p.name, p.condition});
     }
 
     for (const Treatment& t : visits_) {
-        std::string who = t.patient.name + " (" + std::to_string(t.patient.condition) + ")";
-        s.beingSeen.push_back({who, t.doctor.name});
+        s.beingSeen.push_back({t.patient.name, t.doctor.name, t.patient.condition});
     }
     return s;
 }

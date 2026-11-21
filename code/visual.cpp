@@ -18,11 +18,24 @@ static string formatTime(int minutes) {
     return hh + ":" + mm;
 }
 
+/// picks the circle color for a condition level
+/// @param condition 0 = healthy, 10 = critical
+/// @return green, yellow, orange, or red as the patient gets sicker
+static sf::Color conditionColor(int condition) {
+    if (condition <= 3) return sf::Color::Green;
+    if (condition <= 6) return sf::Color::Yellow;
+    // sfml has no built in orange
+    if (condition <= 9) return sf::Color(255, 140, 0);
+    // only 10 is red since the spec says 10 is critical
+    return sf::Color::Red;
+}
+
 HospitalView::HospitalView(sf::RenderWindow& window, const sf::Font& font)
     : window(window), font(font) {}
 
 void HospitalView::draw(const DisplayState& state) {
     drawClock(state.time);
+    drawLegend();
     drawWaiting(state.waiting);
     drawBeingSeen(state.beingSeen);
 }
@@ -33,19 +46,40 @@ void HospitalView::drawText(const string& str, sf::Vector2f pos, unsigned int si
     window.draw(text);
 }
 
+void HospitalView::drawCircle(int condition, sf::Vector2f pos) {
+    sf::CircleShape circle(7.f);
+    circle.setFillColor(conditionColor(condition));
+    circle.setPosition(pos);
+    window.draw(circle);
+}
+
+void HospitalView::drawLegend() {
+    // one sample condition from each color range, 80px apart, to the right of the clock
+    drawCircle(0, {480.f, 25.f});
+    drawText("0-3", {500.f, 20.f}, 18);
+    drawCircle(4, {560.f, 25.f});
+    drawText("4-6", {580.f, 20.f}, 18);
+    drawCircle(7, {640.f, 25.f});
+    drawText("7-9", {660.f, 20.f}, 18);
+    drawCircle(10, {720.f, 25.f});
+    drawText("10 critical", {740.f, 20.f}, 18);
+}
+
 void HospitalView::drawClock(int time) {
     string clock = "Time: " + formatTime(time);
     drawText(clock, {20.f, 15.f}, 28);
 }
 
-void HospitalView::drawWaiting(const vector<string>& waiting) {
+void HospitalView::drawWaiting(const vector<WaitingPatient>& waiting) {
     drawText("Waiting", {20.f, 70.f}, 22);
     for (size_t i = 0; i < waiting.size(); i++) {
         // i + 1 so the list starts at 1 instead of 0
-        string line = to_string(i + 1) + ". " + waiting[i];
+        string line = to_string(i + 1) + ". " + waiting[i].name;
         // each row goes 30px below the last one, starting under the header
-        sf::Vector2f pos(20.f, 110.f + i * 30.f);
-        drawText(line, pos, 18);
+        float y = 110.f + i * 30.f;
+        // circle goes first, +5 so it lines up with the middle of the text
+        drawCircle(waiting[i].condition, {20.f, y + 5.f});
+        drawText(line, {42.f, y}, 18);
     }
 }
 
@@ -54,8 +88,9 @@ void HospitalView::drawBeingSeen(const vector<Visit>& beingSeen) {
     for (size_t i = 0; i < beingSeen.size(); i++) {
         string line = beingSeen[i].patient + "  with  " + beingSeen[i].doctor;
         // same row spacing as the waiting list so the two columns line up
-        sf::Vector2f pos(480.f, 110.f + i * 30.f);
-        drawText(line, pos, 18);
+        float y = 110.f + i * 30.f;
+        drawCircle(beingSeen[i].condition, {480.f, y + 5.f});
+        drawText(line, {502.f, y}, 18);
     }
 }
 
@@ -85,10 +120,10 @@ DisplayState mockState() {
     // 8:30 am in minutes
     s.time = 8 * 60 + 30;
     // placeholder names until the backend fills in the real patients and doctors
-    s.waiting = {"Robert Mccann", "Karen Sellers", "Henry Knight", "Justin Morrison"};
+    s.waiting = {{"Robert Mccann", 10}, {"Karen Sellers", 8}, {"Henry Knight", 5}, {"Justin Morrison", 2}};
     s.beingSeen = {
-        {"Lawrence Macdonald", "Dan Mercer"},
-        {"John Martin", "Briana Stewart"},
+        {"Lawrence Macdonald", "Dan Mercer", 9},
+        {"John Martin", "Briana Stewart", 4},
     };
     return s;
 }
