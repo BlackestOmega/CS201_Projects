@@ -5,6 +5,7 @@
 #include "Hospital.h"
 
 #include <algorithm>
+#include <cctype>
 #include <fstream>
 
 Hospital::Hospital(int startTime)
@@ -106,6 +107,72 @@ std::optional<Patient> Hospital::findPatient(const std::string& name, int age,
     key.birthday = birthday;
     if (const Patient* found = patients_.find(key)) return *found;   // copy out of the tree
     return std::nullopt;
+}
+
+// turns minutes into hh:mm (24 hour), same format as the window's clock
+static std::string clockText(int minutes) {
+    int h = (minutes / 60) % 24, m = minutes % 60;
+    return (h < 10 ? "0" : "") + std::to_string(h) + ":" + (m < 10 ? "0" : "") + std::to_string(m);
+}
+
+// lowercase copy, so "john martin" matches "John Martin"
+static std::string lower(std::string s) {
+    for (char& c : s) c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+    return s;
+}
+
+std::vector<std::string> Hospital::lookup(const std::string& name) const {
+    std::vector<std::string> lines;
+    std::string want = lower(name);
+    std::vector<Patient> line = waiting_.waiting();
+
+    // patients: walk the patient B-tree for matching names
+    patients_.forEach([&](const Patient& p) {
+        if (lower(p.name) != want) return;
+        lines.push_back("Patient: " + p.name + ", age " + std::to_string(p.age) +
+                        ", born " + p.birthday);
+
+        // where are they now? check visits, then the waiting room
+        std::string status;
+        for (const Treatment& t : visits_) {
+            if (t.patient == p) {
+                status = "Being seen by " + t.doctor.name + " until " + clockText(t.endsAt) +
+                         " (condition " + std::to_string(t.patient.condition) + ")";
+            }
+        }
+        for (const Patient& w : line) {
+            if (w == p) {
+                status = "Waiting, condition " + std::to_string(w.condition);
+                if (w.critical()) status += " CRITICAL";
+            }
+        }
+        if (status.empty()) {
+            status = p.arrivalTime > clock_ ? "Arrives at " + clockText(p.arrivalTime)
+                                            : "Treated and sent home";
+        }
+        lines.push_back("    " + status);
+    });
+
+    // doctors: same idea with the doctor B-tree
+    for (const Doctor& d : doctors_.all()) {
+        if (lower(d.name) != want) continue;
+        lines.push_back("Doctor: " + d.name + ", age " + std::to_string(d.age) + ", " + d.skill +
+                        ", skill " + std::to_string(d.skillLevel) + " (" +
+                        std::to_string(d.visitMinutes()) + " min visits)");
+
+        std::string status = "Shift " + d.shiftStart + " - " + d.shiftEnd + ", ";
+        if (!d.onShift(clock_ % (24 * 60))) {
+            status += "off shift";
+        } else {
+            status += "on shift, available";
+            for (const Treatment& t : visits_) {
+                if (t.doctor == d) status = "Shift " + d.shiftStart + " - " + d.shiftEnd +
+                                            ", seeing " + t.patient.name;
+            }
+        }
+        lines.push_back("    " + status);
+    }
+    return lines;
 }
 
 DisplayState Hospital::display() const {

@@ -37,6 +37,14 @@ class HospitalView {
         /// output: nothing, draws to the window
         void draw(const DisplayState& state);
 
+        /// draws the lookup box and its results along the bottom
+        /// @param query what the user has typed so far
+        /// @param searched the name last searched for (empty if none)
+        /// @param results lines from Hospital::lookup for that name
+        /// output: nothing, draws to the window
+        void drawLookup(const string& query, const string& searched,
+                        const vector<string>& results);
+
     private:
         /// draws the clock in the top left
         /// @param time minutes since midnight

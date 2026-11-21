@@ -83,6 +83,13 @@ public:
     std::optional<Patient> findPatient(const std::string& name, int age,
                                        const std::string& birthday) const;
 
+    /**
+     * @brief Finds every patient and doctor with a name, plus what they're doing now.
+     * @param name Full name to search for (capital letters don't matter).
+     * @return Lines of text to show, one block per match; empty if nobody matches.
+     */
+    std::vector<std::string> lookup(const std::string& name) const;
+
     /// @return Current clock time in minutes since the start of day one.
     int time() const { return clock_; }
 

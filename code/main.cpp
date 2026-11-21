@@ -1,4 +1,3 @@
-// Final Project 3 Commit
 /// @file main.cpp
 /// CS 201 - Project #3
 /// Names:      Samuel Bozeman, Joseph Mire, Matthew Carter, Daniel Healy
@@ -56,7 +55,8 @@ int main() {
         return 1;
     }
 
-    sf::VideoMode mode({1000, 600});
+    // 600px for the lists, 200px below them for the lookup panel
+    sf::VideoMode mode({1000, 800});
     sf::RenderWindow window(mode, "Nota Hospital");
     window.setFramerateLimit(60);
 
@@ -69,21 +69,42 @@ int main() {
     HospitalView view(window, font);
     sf::Color background(25, 25, 30);
 
+    std::string query;      // name being typed in the lookup box
+    std::string searched;   // name last searched for with Enter
+
     // runs once per frame until the window gets closed
     while (window.isOpen()) {
         while (const std::optional event = window.pollEvent()) {
             if (event->is<sf::Event::Closed>()) {
                 window.close();
             } else if (const auto* key = event->getIf<sf::Event::KeyPressed>()) {
-                // space moves time forward 5 minutes, the spec lets time move with a button
-                if (key->code == sf::Keyboard::Key::Space) {
+                // space moves time forward 5 minutes, the spec lets time move with a button.
+                // while typing a name, space is part of the name instead
+                if (key->code == sf::Keyboard::Key::Space && query.empty()) {
                     hospital.step(5);
+                } else if (key->code == sf::Keyboard::Key::Enter) {
+                    searched = query;
+                    query.clear();      // empty box again, so space moves time again
+                } else if (key->code == sf::Keyboard::Key::Backspace && !query.empty()) {
+                    query.pop_back();
+                } else if (key->code == sf::Keyboard::Key::Escape) {
+                    query.clear();
+                    searched.clear();
+                }
+            } else if (const auto* text = event->getIf<sf::Event::TextEntered>()) {
+                // add typed letters to the box; skip control keys and a leading space
+                char32_t c = text->unicode;
+                if (c >= 32 && c < 127 && !(c == ' ' && query.empty())) {
+                    query += static_cast<char>(c);
                 }
             }
         }
 
         window.clear(background);
         view.draw(hospital.display());
+        // re-run the search every frame so the status stays current as time moves
+        view.drawLookup(query, searched, searched.empty() ? std::vector<std::string>{}
+                                                          : hospital.lookup(searched));
         window.display();
     }
 }

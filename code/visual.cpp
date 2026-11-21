@@ -59,6 +59,27 @@ void HospitalView::drawBeingSeen(const vector<Visit>& beingSeen) {
     }
 }
 
+void HospitalView::drawLookup(const string& query, const string& searched,
+                              const vector<string>& results) {
+    // the panel starts below the two lists, which fit 15 rows above y = 600
+    float top = 610.f;
+    if (query.empty() && searched.empty()) {
+        drawText("Lookup: Type full first and last name and press enter (Esc clears).", {20.f, top}, 20);
+        return;
+    }
+    // "_" acts as a cursor at the end of the typed text
+    drawText("Lookup: " + query + "_", {20.f, top}, 20);
+
+    if (searched.empty()) return;
+    if (results.empty()) {
+        drawText("No patient or doctor named " + searched, {20.f, top + 35.f}, 18);
+        return;
+    }
+    for (size_t i = 0; i < results.size(); i++) {
+        drawText(results[i], {20.f, top + 35.f + i * 26.f}, 18);
+    }
+}
+
 DisplayState mockState() {
     DisplayState s;
     // 8:30 am in minutes
